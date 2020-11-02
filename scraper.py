@@ -9,8 +9,8 @@ SPREADSHEET_ID = '1bZX-JssNcHKmcika-X9U5HV32eRiZHUeYCCc_IfORvQ'
 creds = utils.get_creds()
 
 # election_date = '20201103'
-# election_date = '20181106'
-election_date = '20161108'
+election_date = '20181106'
+# election_date = '20161108'
 
 
 service = build('sheets', 'v4', credentials=creds)
@@ -36,14 +36,21 @@ grid_coordinate = utils.grid_for_sheet(sheet_id)
 request_payload = utils.payload_for_file(df, grid_coordinate)
 requests_payload.append(request_payload)
 
-grouped = df.groupby(['Contest Name', 'Precinct']).sum().reset_index()
+filtered_precinct_df = df.copy()
+precinct_blacklist = ['TRANS', 'ONE', 'OS', 'CURB', 'PROVI', 'ABSEN']
+for item in precinct_blacklist:
+    filtered_precinct_df = filtered_precinct_df[~df['Precinct'].str.contains(
+        item)]
+
+grouped = filtered_precinct_df.groupby(
+    ['Contest Name', 'Precinct']).sum().reset_index()
 precinct_counts = grouped.groupby('Contest Name').count()
 precinct_reported_counts = grouped[grouped['Total Votes'] >
                                    0].groupby('Contest Name').count()
 precinct_df = precinct_counts.join(
     precinct_reported_counts, rsuffix='reported')
 precinct_df = pd.DataFrame(
-    {'precincts_reported_perc': precinct_df['Precinctreported'] / precinct_df['Precinct'] * 100}, index=precinct_df.index)
+    {'precincts_reported_perc': precinct_df['Precinctreported'] / precinct_df['Precinct']}, index=precinct_df.index)
 
 sheet_id = 1496596366
 url = f'https://er.ncsbe.gov/enr/{election_date}/data/results_0.txt'
@@ -60,12 +67,13 @@ filtered_df = df[(df['Race'].str.contains('NC STATE SENATE'))
                  | (df['Race'].str.contains('NC HOUSE'))]
 filtered_df['Race'] = filtered_df['Race'].str.replace(
     ' (VOTE FOR 1)', '', regex=False)
+
 grid_coordinate = utils.grid_for_sheet(sheet_id)
 request_payload = utils.payload_for_file(filtered_df, grid_coordinate)
 requests_payload.append(request_payload)
 
-breakpoint()
-
+filtered_df = filtered_df.loc[filtered_df.groupby(
+    ['Race', 'Candidate'])['Total Votes'].idxmax()]
 joined = utils.build_joined_df(filtered_df, precinct_df)
 
 

@@ -51,7 +51,6 @@ def payload_for_file(df, grid_coordinate):
 
 
 def build_joined_df(filtered_df, precinct_df):
-    breakpoint()
     dem_df = filtered_df[filtered_df['Party'] == 'DEM']
     dem_df = dem_df.set_index('Race')
     rep_df = filtered_df[filtered_df['Party'] == 'REP']
@@ -66,7 +65,7 @@ def build_joined_df(filtered_df, precinct_df):
     joined = joined.fillna(0)
     joined['dem_margin_perc'] = joined['Percent of Vote'] - \
         joined['Percent of Vote_rep']
-    joined['dem_margin_perc'] = joined['dem_margin_perc'] * 100
+    joined['dem_margin_perc'] = joined['dem_margin_perc']
 
     joined['dem_margin_raw'] = joined['Total Votes'] - \
         joined['Total Votes_rep']
@@ -80,7 +79,11 @@ def build_joined_df(filtered_df, precinct_df):
     # joined = joined[['Race', 'dem_margin_perc', 'dem_margin_raw',
     #                  'dr_votes_counted', 'precincts_reported_perc']]
     joined['Absolute Value of Spread'] = joined['dem_margin_perc'].abs()
+    joined['Vote Count'] = joined['Total Votes_third'] + \
+        joined['Total Votes'] + joined['Total Votes_rep']
     joined = joined[['Race', 'dem_margin_perc', 'Candidate',
-                     'Candidate_rep', 'Percent of Vote', 'Percent of Vote_rep', 'Percent of Vote_third', 'precincts_reported_perc', 'dem_margin_perc', 'Absolute Value of Spread', ]]
+                     'Candidate_rep', 'Percent of Vote', 'Percent of Vote_rep', 'Percent of Vote_third', 'precincts_reported_perc', 'Absolute Value of Spread', 'Vote Count']]
+    joined = joined.rename(columns={'Race': 'District', 'dem_margin_perc': 'Dem Margin %', 'Candidate': 'Democrat', 'Candidate_rep': 'Republican',	'Percent of Vote': 'Dem %', 'Percent of Vote_rep': 'Rep %', 'Percent of Vote_third': 'Other %',
+                                    'precincts_reported_perc': 'Precincts Reporting'})
 
     return joined
