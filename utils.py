@@ -3,6 +3,7 @@ import pickle
 import zipfile
 from io import BytesIO
 
+import pandas as pd
 import requests
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -87,3 +88,42 @@ def build_joined_df(filtered_df, precinct_df):
                                     'precincts_reported_perc': 'Precincts Reporting'})
 
     return joined
+
+
+def filter_df(df):
+    if 'Race' in df.columns:
+        filter_col = 'Race'
+    else:
+        filter_col = 'Contest Name'
+    filtered_df = df[(df[filter_col].str.contains('NC STATE SENATE'))
+                     | (df[filter_col].str.contains('NC HOUSE'))
+                     | (df[filter_col].str.contains('US PRESIDENT'))
+                     | (df[filter_col].str.contains('NC GOVERNOR'))
+                     | (df[filter_col].str.contains('US SENATE'))
+                     | (df[filter_col].str.contains('NC LIEUTENANT GOVERNOR'))
+                     ]
+    filtered_df[filter_col] = filtered_df[filter_col].str.replace(
+        ' (VOTE FOR 1)', '', regex=False)
+    ncga_elections = [x for x in filtered_df[filter_col].unique(
+    ) if 'HOUSE' in x]
+    ncga_elections = ncga_elections + [x for x in filtered_df[filter_col].unique(
+    ) if 'STATE SEN' in x]
+    filtered_df[filter_col] = pd.Categorical(filtered_df[filter_col], ncga_elections + [
+        'US SENATE', 'NC GOVERNOR', 'NC LIEUTENANT GOVERNOR', 'US PRESIDENT'])
+    return filtered_df
+
+
+# def filter_df(df):
+#     if 'Race' in df.columns:
+#         filter_col = 'Race'
+#     else:
+#         filter_col = 'Contest Name'
+#     filtered_df = df[(df[filter_col].str.contains('NC STATE SENATE'))
+#                      | (df[filter_col].str.contains('NC HOUSE'))]
+#     filtered_df[filter_col] = filtered_df[filter_col].str.replace(
+#         ' (VOTE FOR 1)', '', regex=False)
+#     # ncga_elections = [x for x in filtered_df[filter_col].unique(
+#     # ) if 'STATE SEN' in x or 'HOUSE' in x]
+#     # filtered_df[filter_col] = pd.Categorical(filtered_df[filter_col], ncga_elections + [
+#     #     'US SENATE', 'NC GOVERNOR', 'NC LIEUTENANT GOVERNOR', 'US PRESIDENT'])
+#     return filtered_df
